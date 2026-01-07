@@ -8,12 +8,13 @@ from typing import Optional, List, Dict, Any
 import gitlab
 from dotenv import load_dotenv
 
+from src.config.settings import ENV_PATH
 from src.core.base import BaseLLM
 from src.models.deepseek_llm import DeepSeekLLM
 from src.models.kimi_llm import KimiLLM
 from src.models.openai_llm import OpenAILLM
 
-load_dotenv(dotenv_path=".env")
+load_dotenv(dotenv_path=ENV_PATH)
 
 
 class GitLabAIReviewer:
@@ -277,17 +278,159 @@ React Native 性能检查:
             raise
 
 
-async def main():
-    """CI 环境中的入口函数"""
+def select_from_list(items, prompt, item_formatter=None):
+    """交互式选择列表中的项目"""
+    if not items:
+        print("No items available.")
+        return None
+
+    print(f"\n{prompt}")
+    print("-" * 50)
+
+    for i, item in enumerate(items, 1):
+        if item_formatter:
+            print(f"{i}. {item_formatter(item)}")
+        else:
+            print(f"{i}. {item}")
+
+    print("-" * 50)
+
+    while True:
+        try:
+            choice = input(f"Select (1-{len(items)}), or 'q' to quit: ").strip()
+            if choice.lower() == 'q':
+                return None
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(items):
+                return items[choice_num - 1]
+            else:
+                print(f"Please enter a number between 1 and {len(items)}")
+        except ValueError:
+            print("Please enter a valid number or 'q' to quit")
+
+
+def get_projects_interactive(gitlab_url, gitlab_token):
+    """交互式获取项目列表"""
     try:
-        # 从 CI 环境变量获取值
-        if os.getenv("CI_SERVER_URL"):  # 检查是否在 CI 环境中
+        gl = gitlab.Gitlab(gitlab_url, private_token=gitlab_token)
+        projects = gl.projects.list(get_all=True, order_by="name", sort="asc")
+
+        if not projects:
+            print("No projects found.")
+            return None
+
+        def project_formatter(project):
+            return f"{project.name} (ID: {project.id}, Path: {project.path_with_namespace})"
+
+        selected_project = select_from_list(
+            projects,
+            "Available projects:",
+            project_formatter
+        )
+
+        return selected_project
+    except Exception as e:
+        print(f"Error fetching projects: {str(e)}")
+        return None
+
+
+def get_merge_requests_interactive(project):
+    """交互式获取合并请求列表"""
+    try:
+        mrs = project.mergerequests.list(state="opened", get_all=True, order_by="updated_at", sort="desc")
+
+        if not mrs:
+            print("No open merge requests found.")
+            return None
+
+        def mr_formatter(mr):
+            status = "✓" if not mr.has_conflicts else "✗"
+            return f"!{mr.iid} - {mr.title} (Updated: {mr.updated_at[:10]}) {status}"
+
+        selected_mr = select_from_list(
+            mrs,
+            "Available merge requests:",
+            mr_formatter
+        )
+
+        return selected_mr
+    except Exception as e:
+        print(f"Error fetching merge requests: {str(e)}")
+        return None
+
+
+async def interactive_mode():
+    """交互式模式"""
+    print("=" * 60)
+    print("GitLab AI Code Reviewer - Interactive Mode")
+    print("=" * 60)
+
+    # 获取必要的环境变量
+    gitlab_url = os.getenv("GITLAB_URL")
+    gitlab_token = os.getenv("GITLAB_API_TOKEN")
+
+    if not gitlab_url or not gitlab_token:
+        print("Error: GITLAB_URL and GITLAB_API_TOKEN must be set in environment variables.")
+        print("Please check your .env file.")
+        return
+
+    print(f"Connecting to GitLab: {gitlab_url}")
+
+    # 1. 选择项目
+    selected_project = get_projects_interactive(gitlab_url, gitlab_token)
+    if not selected_project:
+        return
+
+    print(f"\nSelected project: {selected_project.name} (ID: {selected_project.id})")
+
+    # 2. 选择合并请求
+    selected_mr = get_merge_requests_interactive(selected_project)
+    if not selected_mr:
+        return
+
+    print(f"\nSelected merge request: !{selected_mr.iid} - {selected_mr.title}")
+
+    # 3. 获取模型类型
+    model_type = os.getenv("REVIEW_MODEL", "deepseek")
+    print(f"\nUsing model: {model_type}")
+
+    # 4. 运行代码审查
+    print("\n" + "=" * 60)
+    print("Starting code review...")
+    print("=" * 60)
+
+    try:
+        reviewer = GitLabAIReviewer(
+            gitlab_url=gitlab_url,
+            private_token=gitlab_token,
+            project_id=selected_project.id,
+            model_type=model_type,
+            max_files=int(os.getenv("REVIEW_MAX_FILES", "10")),
+            max_lines=int(os.getenv("REVIEW_MAX_LINES", "500")),
+        )
+
+        await reviewer.run(mr_iid=selected_mr.iid)
+        print("\nCode review completed successfully!")
+
+    except Exception as e:
+        print(f"\nError during code review: {str(e)}")
+        raise
+
+
+async def main():
+    """主入口函数 - 支持交互式和自动模式"""
+    try:
+        # 检查是否在 CI 环境中
+        if os.getenv("CI_SERVER_URL"):
+            print("Running in CI mode...")
+            # CI 模式 - 使用环境变量
             gitlab_url = os.getenv("CI_SERVER_URL")
             gitlab_token = os.getenv("GITLAB_API_TOKEN")
             project_id = os.getenv("CI_PROJECT_ID")
             mr_iid = os.getenv("CI_MERGE_REQUEST_IID")
         else:
-            # 从 .env 文件获取本地开发环境的值
+            # 本地开发模式
+            print("Running in local development mode...")
             gitlab_url = os.getenv("GITLAB_URL")
             gitlab_token = os.getenv("GITLAB_API_TOKEN")
             project_id = os.getenv("GITLAB_PROJECT_ID")
@@ -295,42 +438,35 @@ async def main():
 
         model_type = os.getenv("REVIEW_MODEL", "deepseek")
 
-        # 打印调试信息
-        print(f"GitLab URL: {gitlab_url}")
-        print(f"Project ID: {project_id}")
-        print(f"MR IID: {mr_iid}")
-        print(f"Model Type: {model_type}")
-        print(f"GitLab Token: {gitlab_token}")
-        print(f"DeepSeek API Key: {os.getenv('DEEPSEEK_API_KEY')}")
-        print(f"OpenAI API Key: {os.getenv('OPENAI_API_KEY')}")
+        # 检查是否所有必要的环境变量都已设置
+        has_all_vars = all([gitlab_url, gitlab_token, project_id, mr_iid])
 
-        # 验证必要的环境变量
-        if not all([gitlab_url, gitlab_token, project_id, mr_iid]):
-            missing_vars = []
-            if not gitlab_url:
-                missing_vars.append("GITLAB_URL/CI_SERVER_URL")
-            if not gitlab_token:
-                missing_vars.append("GITLAB_TOKEN/GITLAB_API_TOKEN")
-            if not project_id:
-                missing_vars.append("GITLAB_PROJECT_ID/CI_PROJECT_ID")
-            if not mr_iid:
-                missing_vars.append("REVIEW_MR_IID/CI_MERGE_REQUEST_IID")
+        if has_all_vars:
+            # 自动模式 - 使用环境变量
+            print(f"GitLab URL: {gitlab_url}")
+            print(f"Project ID: {project_id}")
+            print(f"MR IID: {mr_iid}")
+            print(f"Model Type: {model_type}")
 
-            raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
+            print(f"\nStarting code review for MR !{mr_iid}")
 
-        print(f"Starting code review for MR !{mr_iid}")
+            reviewer = GitLabAIReviewer(
+                gitlab_url=gitlab_url,
+                private_token=gitlab_token,
+                project_id=int(project_id),
+                model_type=model_type,
+                max_files=int(os.getenv("REVIEW_MAX_FILES", "10")),
+                max_lines=int(os.getenv("REVIEW_MAX_LINES", "500")),
+            )
 
-        reviewer = GitLabAIReviewer(
-            gitlab_url=gitlab_url,
-            private_token=gitlab_token,
-            project_id=int(project_id),
-            model_type=model_type,
-            max_files=int(os.getenv("REVIEW_MAX_FILES", "10")),
-            max_lines=int(os.getenv("REVIEW_MAX_LINES", "500")),
-        )
+            await reviewer.run(mr_iid=int(mr_iid))
+            print("Code review completed successfully")
 
-        await reviewer.run(mr_iid=int(mr_iid))
-        print("Code review completed successfully")
+        else:
+            # 缺少环境变量，进入交互式模式
+            print("\nSome environment variables are missing.")
+            print("Switching to interactive mode...\n")
+            await interactive_mode()
 
     except Exception as e:
         print(f"Error during code review: {str(e)}")

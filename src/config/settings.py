@@ -2,7 +2,8 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path=r"C:\Users\11257\Documents\AIPlayground\src\config\.env")
+ENV_PATH = r"C:\Users\11257\Documents\AIPlayground\.env"
+load_dotenv(dotenv_path=ENV_PATH)
 
 # API Keys
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
