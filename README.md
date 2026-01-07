@@ -4,7 +4,7 @@
 
 ## 特性
 
-- 多模型支持：OpenAI、DeepSeek、Gemini
+- 多模型支持：OpenAI、DeepSeek、Gemini、Kimi
 - 多种触发方式：GitLab CI/CD、Webhook
 - 智能代码分析：基于文件类型的差异化审查
 - 异步处理：高效的并发审查机制
@@ -33,6 +33,7 @@ GITLAB_PROJECT_ID=your_project_id
 OPENAI_API_KEY=your_openai_key
 DEEPSEEK_API_KEY=your_deepseek_key
 GEMINI_API_KEY=your_gemini_key
+KIMI_API_KEY=your_kimi_key
 
 # Webhook 配置 (可选)
 WEBHOOK_SECRET=your_webhook_secret

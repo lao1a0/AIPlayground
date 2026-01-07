@@ -1,8 +1,11 @@
+import asyncio
+
 from openai import AsyncOpenAI
+
+from ..config.settings import OPENAI_API_KEY, DEFAULT_MODEL
 from ..core.base import BaseLLM
 from ..core.exceptions import APIKeyNotFoundError, ModelNotAvailableError
-from ..config.settings import OPENAI_API_KEY, DEFAULT_MODEL
-import asyncio
+
 
 class OpenAILLM(BaseLLM):
     def __init__(self, api_key: str = OPENAI_API_KEY, max_retries: int = 3):
@@ -11,7 +14,7 @@ class OpenAILLM(BaseLLM):
         super().__init__(api_key)
         self.client = AsyncOpenAI(api_key=api_key)
         self.max_retries = max_retries
-        
+
     async def _handle_api_call(self, func, *args, **kwargs):
         for attempt in range(self.max_retries):
             try:
@@ -28,7 +31,7 @@ class OpenAILLM(BaseLLM):
                     await asyncio.sleep(wait_time)
                     continue
                 raise
-        
+
     async def generate(self, prompt: str, **kwargs) -> str:
         try:
             response = await self._handle_api_call(
@@ -54,4 +57,4 @@ class OpenAILLM(BaseLLM):
                 if chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
         finally:
-            await self.client.close() 
+            await self.client.close()

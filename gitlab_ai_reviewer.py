@@ -1,27 +1,30 @@
-import gitlab
-from datetime import datetime
-import os
-from typing import Optional, List, Dict, Any
-from src.models.openai_llm import OpenAILLM
-from src.models.deepseek_llm import DeepSeekLLM
-from src.core.base import BaseLLM
-from src.core.exceptions import APIKeyNotFoundError, ModelNotAvailableError
 import asyncio
+import os
 import re
 import traceback
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+
+import gitlab
 from dotenv import load_dotenv
+
+from src.core.base import BaseLLM
+from src.models.deepseek_llm import DeepSeekLLM
+from src.models.kimi_llm import KimiLLM
+from src.models.openai_llm import OpenAILLM
 
 load_dotenv(dotenv_path=".env")
 
+
 class GitLabAIReviewer:
     def __init__(
-        self,
-        gitlab_url: str,
-        private_token: str,
-        project_id: int,
-        model_type: str = "deepseek",  # 默认使用 deepseek
-        max_files: int = 10,
-        max_lines: int = 500,
+            self,
+            gitlab_url: str,
+            private_token: str,
+            project_id: int,
+            model_type: str = "deepseek",  # 默认使用 deepseek
+            max_files: int = 10,
+            max_lines: int = 500,
     ):
         self.gl = gitlab.Gitlab(gitlab_url, private_token=private_token)
         self.project = self.gl.projects.get(project_id)
@@ -41,6 +44,11 @@ class GitLabAIReviewer:
             if not api_key:
                 raise ValueError("OPENAI_API_KEY not found in environment variables")
             return OpenAILLM(api_key=api_key)
+        elif model_type == "kimi":
+            api_key = os.getenv("KIMI_API_KEY")
+            if not api_key:
+                raise ValueError("KIMI_API_KEY not found in environment variables")
+            return KimiLLM(api_key=api_key)
         else:
             raise ValueError(f"Unsupported model type: {model_type}")
 
@@ -79,8 +87,8 @@ class GitLabAIReviewer:
 
         if len(diff.split("\n")) > self.max_lines:
             diff = (
-                "\n".join(diff.split("\n")[: self.max_lines])
-                + "\n... (diff too long, truncated)"
+                    "\n".join(diff.split("\n")[: self.max_lines])
+                    + "\n... (diff too long, truncated)"
             )
 
         # 根据文件类型调整审查重点

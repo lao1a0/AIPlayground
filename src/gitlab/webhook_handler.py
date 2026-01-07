@@ -3,7 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import hmac
 import hashlib
 from .code_reviewer import GitLabCodeReviewer
-from ..models.openai_llm import OpenAILLM  # 或使用其他 LLM
+from ..models.openai_llm import OpenAILLM
+from ..models.deepseek_llm import DeepSeekLLM
+from ..models.kimi_llm import KimiLLM
+from ..core.base import BaseLLM
 import os
 
 app = FastAPI()
@@ -21,9 +24,30 @@ app.add_middleware(
 GITLAB_URL = os.getenv("GITLAB_URL")
 GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
+MODEL_TYPE = os.getenv("MODEL_TYPE", "kimi")  # 默认使用 kimi
+
+def init_llm(model_type: str = MODEL_TYPE) -> BaseLLM:
+    """初始化 LLM 模型"""
+    if model_type == "deepseek":
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not api_key:
+            raise ValueError("DEEPSEEK_API_KEY not found in environment variables")
+        return DeepSeekLLM(api_key=api_key)
+    elif model_type == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY not found in environment variables")
+        return OpenAILLM(api_key=api_key)
+    elif model_type == "kimi":
+        api_key = os.getenv("KIMI_API_KEY")
+        if not api_key:
+            raise ValueError("KIMI_API_KEY not found in environment variables")
+        return KimiLLM(api_key=api_key)
+    else:
+        raise ValueError(f"Unsupported model type: {model_type}")
 
 # 初始化 LLM
-llm = OpenAILLM()
+llm = init_llm()
 
 @app.post("/webhook/gitlab")
 async def handle_webhook(request: Request):
@@ -59,4 +83,4 @@ async def handle_webhook(request: Request):
         
         return {"status": "success"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))

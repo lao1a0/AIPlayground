@@ -1,9 +1,11 @@
+import asyncio
+
 import google.generativeai as genai
+
+from ..config.settings import GEMINI_API_KEY
 from ..core.base import BaseLLM
 from ..core.exceptions import APIKeyNotFoundError
-from ..config.settings import GEMINI_API_KEY
-import asyncio
-import time
+
 
 class GeminiLLM(BaseLLM):
     def __init__(self, api_key: str = GEMINI_API_KEY, max_retries: int = 3):
@@ -43,4 +45,4 @@ class GeminiLLM(BaseLLM):
         )
         async for chunk in response:
             if chunk.text:
-                yield chunk.text 
+                yield chunk.text

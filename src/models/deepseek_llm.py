@@ -1,16 +1,19 @@
+import asyncio
+import json
+
+import httpx
+
+from ..config.settings import DEEPSEEK_API_KEY
 from ..core.base import BaseLLM
 from ..core.exceptions import APIKeyNotFoundError, ModelNotAvailableError
-from ..config.settings import DEEPSEEK_API_KEY
-import asyncio
-import httpx
-import json
+
 
 class DeepSeekLLM(BaseLLM):
     def __init__(
-        self, 
-        api_key: str = DEEPSEEK_API_KEY, 
-        max_retries: int = 3,
-        timeout: float = 60.0  # 增加超时配置
+            self,
+            api_key: str = DEEPSEEK_API_KEY,
+            max_retries: int = 3,
+            timeout: float = 60.0  # 增加超时配置
     ):
         if not api_key:
             raise APIKeyNotFoundError("DeepSeek API key not found")
@@ -95,4 +98,4 @@ class DeepSeekLLM(BaseLLM):
                             continue
         except Exception as e:
             print(f"Error in stream: {str(e)}")
-            raise 
+            raise

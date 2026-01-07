@@ -1,14 +1,15 @@
 import asyncio
-import sys
 import os
+import sys
+
+from src.models.deepseek_llm import DeepSeekLLM
+from src.models.kimi_llm import KimiLLM
 
 # 添加项目根目录到 Python 路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from src.models.openai_llm import OpenAILLM
-from src.models.gemini_llm import GeminiLLM
-from src.models.deepseek_llm import DeepSeekLLM
 from src.core.exceptions import APIKeyNotFoundError
+
 
 async def test_completion(llm, prompt: str):
     """测试基础文本生成"""
@@ -21,6 +22,7 @@ async def test_completion(llm, prompt: str):
     except Exception as e:
         print(f"错误: {str(e)}")
 
+
 async def test_streaming(llm, prompt: str):
     """测试流式输出"""
     try:
@@ -31,6 +33,7 @@ async def test_streaming(llm, prompt: str):
         print("\n" + "-" * 50)
     except Exception as e:
         print(f"错误: {str(e)}")
+
 
 async def main():
     # 测试提示语
@@ -43,6 +46,7 @@ async def main():
     try:
         # 初始化所有模型
         models = [
+            KimiLLM(),
             DeepSeekLLM(),
             # OpenAILLM(),
             # GeminiLLM(),
@@ -68,6 +72,7 @@ async def main():
     except Exception as e:
         print(f"发生错误: {str(e)}")
 
+
 if __name__ == "__main__":
     print("开始AI模型测试...")
-    asyncio.run(main()) 
+    asyncio.run(main())
