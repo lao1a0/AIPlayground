@@ -58,3 +58,4 @@ logs/
 htmlcov/
 .tox/
 .pytest_cache/
+/gitlab-test/gitlab/*
