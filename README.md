@@ -54,59 +54,35 @@ include:
 Settings > CI/CD > Variables
 ```
 
-
-
 ## 本地 GitLab 测试环境
 
-如果你希望在本地搭建一个 GitLab 实例来测试 AI Code Review，可以使用 Docker + docker-compose 快速启动。
+使用 Docker + docker-compose 快速启动一个本地的GitLab 环境。
 
-### 启动步骤
-
-1. 在项目根目录创建 `docker-compose.yml`：
-
-   ```yaml
-   version: '3.8'
-
-   services:
-     gitlab:
-       image: gitlab/gitlab-ce:latest
-       container_name: gitlab
-       restart: always
-       hostname: localhost
-       ports:
-         - "8080:80"    # Web UI
-         - "8443:443"   # HTTPS
-         - "2222:22"    # SSH
-   ```
-
-2. 启动 GitLab 容器：
+1. 启动 GitLab 容器：
    ```bash
-   docker-compose up -d
+   gitlab-test/docker-compose.yml up -d
    ```
 
-3. 等待初始化完成（首次启动可能需要几分钟），然后在浏览器访问：
+2. 等待初始化完成（首次启动可能需要几分钟），然后在浏览器访问：
    ```
    http://localhost:8080
    ```
 
-4. 获取默认管理员账号密码：
+3. 获取默认管理员账号密码：
    ```bash
    docker exec -it gitlab cat /etc/gitlab/initial_root_password
    ```
-   - 用户名：`root`  
-   - 密码：文件中显示的随机字符串（有效期 24 小时，首次登录后请修改）
+    - 用户名：`root`
+    - 密码：文件中显示的随机字符串（有效期 24 小时，首次登录后请修改）
 
-### 注意事项
+注意事项
 
-- 如果端口 `8080` 或 `8443` 已被占用，可以在 `docker-compose.yml` 中修改为其他端口。  
-- 在 WSL2 环境下运行时，确保主机代理关了没, **Windows 浏览器**里访问 `http://localhost:8080`。  
+- 注册 runner 自行搜索
 - 如果遇到权限问题，可以执行：
   ```bash
   docker exec -it gitlab update-permissions
   docker restart gitlab
   ```
-
-
 
 ## 使用方式
 
