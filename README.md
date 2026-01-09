@@ -184,10 +184,6 @@ React Native 类型检查点:
 
 MIT License
 
-## 作者
-
-Your Name <your.email@example.com>
-
 ## 更新日志
 
 ### v1.0.0
