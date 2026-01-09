@@ -1,9 +1,12 @@
+import logging
 import re
 from typing import Dict, Any
 
 import gitlab
 
 from ..core.base import BaseLLM
+
+logger = logging.getLogger(__name__)
 
 
 class GitLabCodeReviewer:
@@ -41,8 +44,9 @@ class GitLabCodeReviewer:
             review_comment = await self.llm.generate(prompt)
             if review_comment.strip():
                 self._post_review_comment(mr, file_path, review_comment)
+                logger.info(f"Posted review comment for {file_path}")
         except Exception as e:
-            print(f"Error reviewing {file_path}: {str(e)}")
+            logger.error(f"Error reviewing {file_path}: {str(e)}")
 
     def _should_review_file(self, file_path: str) -> bool:
         """判断文件是否需要审查"""
@@ -68,6 +72,15 @@ class GitLabCodeReviewer:
                 removed_lines.append(line[1:])
 
         return {'added': added_lines, 'removed': removed_lines, 'full_diff': diff}
+
+    def _post_review_comment(self, mr: Any, file_path: str, comment: str) -> None:
+        """发布审查评论到合并请求"""
+        try:
+            mr.notes.create({
+                'body': f"**代码审查 - {file_path}**\n\n{comment}"
+            })
+        except Exception as e:
+            logger.error(f"Failed to post comment for {file_path}: {str(e)}")
 
     def _create_review_prompt(self, file_path: str, context: Dict[str, Any]) -> str:
         """创建代码审查提示"""
