@@ -34,25 +34,18 @@ class OpenAILLM(BaseLLM):
 
     async def generate(self, prompt: str, **kwargs) -> str:
         try:
-            response = await self._handle_api_call(
-                self.client.chat.completions.create,
-                model=kwargs.get("model", DEFAULT_MODEL),
-                messages=[{"role": "user", "content": prompt}],
-                temperature=kwargs.get("temperature", 0.7),
-            )
+            response = await self._handle_api_call(self.client.chat.completions.create,
+                model=kwargs.get("model", DEFAULT_MODEL), messages=[{"role": "user", "content": prompt}],
+                temperature=kwargs.get("temperature", 0.7), )
             return response.choices[0].message.content
         finally:
             await self.client.close()
 
     async def stream(self, prompt: str, **kwargs):
         try:
-            response = await self._handle_api_call(
-                self.client.chat.completions.create,
-                model=kwargs.get("model", DEFAULT_MODEL),
-                messages=[{"role": "user", "content": prompt}],
-                temperature=kwargs.get("temperature", 0.7),
-                stream=True
-            )
+            response = await self._handle_api_call(self.client.chat.completions.create,
+                model=kwargs.get("model", DEFAULT_MODEL), messages=[{"role": "user", "content": prompt}],
+                temperature=kwargs.get("temperature", 0.7), stream=True)
             async for chunk in response:
                 if chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content

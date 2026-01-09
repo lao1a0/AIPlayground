@@ -31,18 +31,11 @@ class GeminiLLM(BaseLLM):
                     raise
 
     async def generate(self, prompt: str, **kwargs) -> str:
-        response = await self._retry_with_backoff(
-            self.model.generate_content_async,
-            prompt
-        )
+        response = await self._retry_with_backoff(self.model.generate_content_async, prompt)
         return response.text
 
     async def stream(self, prompt: str, **kwargs):
-        response = await self._retry_with_backoff(
-            self.model.generate_content_async,
-            prompt,
-            stream=True
-        )
+        response = await self._retry_with_backoff(self.model.generate_content_async, prompt, stream=True)
         async for chunk in response:
             if chunk.text:
                 yield chunk.text

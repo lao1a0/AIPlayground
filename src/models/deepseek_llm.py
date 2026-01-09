@@ -9,11 +9,7 @@ from ..core.exceptions import APIKeyNotFoundError, ModelNotAvailableError
 
 
 class DeepSeekLLM(BaseLLM):
-    def __init__(
-            self,
-            api_key: str = DEEPSEEK_API_KEY,
-            max_retries: int = 3,
-            timeout: float = 60.0  # 增加超时配置
+    def __init__(self, api_key: str = DEEPSEEK_API_KEY, max_retries: int = 3, timeout: float = 60.0  # 增加超时配置
     ):
         if not api_key:
             raise APIKeyNotFoundError("DeepSeek API key not found")
@@ -25,35 +21,19 @@ class DeepSeekLLM(BaseLLM):
 
     async def _make_request(self, prompt: str, stream: bool = False, **kwargs):
         # 配置 httpx 客户端
-        client_settings = {
-            "base_url": self.base_url,
-            "timeout": httpx.Timeout(
-                connect=10.0,  # 连接超时
-                read=self.timeout,  # 读取超时
-                write=10.0,  # 写入超时
-                pool=10.0  # 连接池超时
-            ),
-            "limits": httpx.Limits(
-                max_keepalive_connections=5,
-                max_connections=10,
-                keepalive_expiry=30.0
-            )
-        }
+        client_settings = {"base_url": self.base_url, "timeout": httpx.Timeout(connect=10.0,  # 连接超时
+            read=self.timeout,  # 读取超时
+            write=10.0,  # 写入超时
+            pool=10.0  # 连接池超时
+        ), "limits": httpx.Limits(max_keepalive_connections=5, max_connections=10, keepalive_expiry=30.0)}
 
         async with httpx.AsyncClient(**client_settings) as client:
             for attempt in range(self.max_retries):
                 try:
-                    response = await client.post(
-                        "/chat/completions",
-                        headers=self.headers,
-                        json={
-                            "model": "deepseek-chat",
-                            "messages": [{"role": "user", "content": prompt}],
-                            "temperature": kwargs.get("temperature", 0.7),
-                            "max_tokens": kwargs.get("max_tokens", 2000),
-                            "stream": stream
-                        }
-                    )
+                    response = await client.post("/chat/completions", headers=self.headers,
+                        json={"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}],
+                            "temperature": kwargs.get("temperature", 0.7), "max_tokens": kwargs.get("max_tokens", 2000),
+                            "stream": stream})
                     response.raise_for_status()
                     return response
                 except httpx.TimeoutException as e:

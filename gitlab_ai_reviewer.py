@@ -18,15 +18,9 @@ load_dotenv(dotenv_path=ENV_PATH)
 
 
 class GitLabAIReviewer:
-    def __init__(
-            self,
-            gitlab_url: str,
-            private_token: str,
-            project_id: int,
-            model_type: str = "deepseek",  # 默认使用 deepseek
-            max_files: int = 10,
-            max_lines: int = 500,
-    ):
+    def __init__(self, gitlab_url: str, private_token: str, project_id: int, model_type: str = "deepseek",
+            # 默认使用 deepseek
+            max_files: int = 10, max_lines: int = 500, ):
         self.gl = gitlab.Gitlab(gitlab_url, private_token=private_token)
         self.project = self.gl.projects.get(project_id)
         self.max_files = max_files
@@ -64,19 +58,8 @@ class GitLabAIReviewer:
 
     def _should_review_file(self, file_path: str) -> bool:
         """判断文件是否需要审查"""
-        ignore_patterns = [
-            r"\.lock$",
-            r"package-lock\.json$",
-            r"yarn\.lock$",
-            r"\.gitignore$",
-            r"\.env.*",
-            r"\.md$",
-            r"\.txt$",
-            r"\.csv$",
-            r"\.json$",
-            r"\.yaml$",
-            r"\.yml$",
-        ]
+        ignore_patterns = [r"\.lock$", r"package-lock\.json$", r"yarn\.lock$", r"\.gitignore$", r"\.env.*", r"\.md$",
+            r"\.txt$", r"\.csv$", r"\.json$", r"\.yaml$", r"\.yml$", ]
         return not any(re.search(pattern, file_path) for pattern in ignore_patterns)
 
     def _prepare_review_prompt(self, change: Dict[str, Any]) -> str:
@@ -87,20 +70,15 @@ class GitLabAIReviewer:
         is_react_native = "react-native" in file_path.lower() or "/rn/" in file_path.lower()
 
         if len(diff.split("\n")) > self.max_lines:
-            diff = (
-                    "\n".join(diff.split("\n")[: self.max_lines])
-                    + "\n... (diff too long, truncated)"
-            )
+            diff = ("\n".join(diff.split("\n")[: self.max_lines]) + "\n... (diff too long, truncated)")
 
         # 根据文件类型调整审查重点
-        language_specific_checks = {
-            ".py": """Python 特定检查点:
+        language_specific_checks = {".py": """Python 特定检查点:
 - 代码是否遵循 PEP 8 规范
 - 是否正确处理异常
 - 是否有适当的类型注解
 - 是否有必要的文档字符串
-- 是否正确使用异步特性""",
-            ".ts": """TypeScript 特定检查点:
+- 是否正确使用异步特性""", ".ts": """TypeScript 特定检查点:
 - 类型定义是否准确和完整
 - 是否正确使用 TypeScript 特性（泛型、接口、类型守卫等）
 - 是否避免了 any 类型的滥用
@@ -117,8 +95,7 @@ React Native 类型检查点:
 - 事件类型是否准确定义
 - 样式类型是否符合 React Native 规范
 - 导航参数类型是否完整
-- 第三方库类型集成是否正确""" if is_react_native else ""),
-            ".tsx": """React TypeScript 特定检查点:
+- 第三方库类型集成是否正确""" if is_react_native else ""), ".tsx": """React TypeScript 特定检查点:
 - 组件 Props 和 State 的类型定义是否完整
 - 是否正确使用 React.FC 或函数组件声明
 - 事件处理器的类型是否正确
@@ -144,20 +121,17 @@ React Native 特定检查点:
 - 是否考虑了应用生命周期
 - 是否正确处理键盘事件
 - 是否考虑了深色模式支持
-- 无障碍功能支持是否完善""" if is_react_native else ""),
-            ".js": """JavaScript 特定检查点:
+- 无障碍功能支持是否完善""" if is_react_native else ""), ".js": """JavaScript 特定检查点:
 - 是否使用现代 ES6+ 特性
 - 是否正确处理异步操作
 - 是否有潜在的内存泄漏
 - 是否考虑浏览器兼容性
-- 是否遵循项目的 ESLint 规则""",
-            ".go": """Go 特定检查点:
+- 是否遵循项目的 ESLint 规则""", ".go": """Go 特定检查点:
 - 是否遵循 Go 的代码规范
 - 错误处理是否合适
 - 是否有潜在的并发问题
 - 是否正确使用 defer
-- 性能优化建议""",
-        }.get(file_extension, "")
+- 性能优化建议""", }.get(file_extension, "")
 
         security_checks = """安全检查:
 1. 是否存在潜在的安全漏洞
@@ -241,12 +215,10 @@ React Native 性能检查:
 
     def post_review_comment(self, mr: Any, file_path: str, review_comment: str) -> None:
         """发布审查评论"""
-        comment = (
-            f"## AI 代码审查意见 - `{file_path}`\n\n"
-            f"{review_comment}\n\n"
-            f"---\n"
-            f"_自动审查时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_"
-        )
+        comment = (f"## AI 代码审查意见 - `{file_path}`\n\n"
+                   f"{review_comment}\n\n"
+                   f"---\n"
+                   f"_自动审查时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_")
         mr.notes.create({"body": comment})
 
     async def run(self, mr_iid: Optional[int] = None) -> None:
@@ -322,11 +294,7 @@ def get_projects_interactive(gitlab_url, gitlab_token):
         def project_formatter(project):
             return f"{project.name} (ID: {project.id}, Path: {project.path_with_namespace})"
 
-        selected_project = select_from_list(
-            projects,
-            "Available projects:",
-            project_formatter
-        )
+        selected_project = select_from_list(projects, "Available projects:", project_formatter)
 
         return selected_project
     except Exception as e:
@@ -347,11 +315,7 @@ def get_merge_requests_interactive(project):
             status = "✓" if not mr.has_conflicts else "✗"
             return f"!{mr.iid} - {mr.title} (Updated: {mr.updated_at[:10]}) {status}"
 
-        selected_mr = select_from_list(
-            mrs,
-            "Available merge requests:",
-            mr_formatter
-        )
+        selected_mr = select_from_list(mrs, "Available merge requests:", mr_formatter)
 
         return selected_mr
     except Exception as e:
@@ -400,14 +364,9 @@ async def interactive_mode():
     print("=" * 60)
 
     try:
-        reviewer = GitLabAIReviewer(
-            gitlab_url=gitlab_url,
-            private_token=gitlab_token,
-            project_id=selected_project.id,
-            model_type=model_type,
-            max_files=int(os.getenv("REVIEW_MAX_FILES", "10")),
-            max_lines=int(os.getenv("REVIEW_MAX_LINES", "500")),
-        )
+        reviewer = GitLabAIReviewer(gitlab_url=gitlab_url, private_token=gitlab_token, project_id=selected_project.id,
+            model_type=model_type, max_files=int(os.getenv("REVIEW_MAX_FILES", "10")),
+            max_lines=int(os.getenv("REVIEW_MAX_LINES", "500")), )
 
         await reviewer.run(mr_iid=selected_mr.iid)
         print("\nCode review completed successfully!")
@@ -450,14 +409,9 @@ async def main():
 
             print(f"\nStarting code review for MR !{mr_iid}")
 
-            reviewer = GitLabAIReviewer(
-                gitlab_url=gitlab_url,
-                private_token=gitlab_token,
-                project_id=int(project_id),
-                model_type=model_type,
-                max_files=int(os.getenv("REVIEW_MAX_FILES", "10")),
-                max_lines=int(os.getenv("REVIEW_MAX_LINES", "500")),
-            )
+            reviewer = GitLabAIReviewer(gitlab_url=gitlab_url, private_token=gitlab_token, project_id=int(project_id),
+                model_type=model_type, max_files=int(os.getenv("REVIEW_MAX_FILES", "10")),
+                max_lines=int(os.getenv("REVIEW_MAX_LINES", "500")), )
 
             await reviewer.run(mr_iid=int(mr_iid))
             print("Code review completed successfully")
