@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from typing import Dict, Any
 
 import gitlab
@@ -78,3 +79,11 @@ class GitLabCodeReviewer:
 变更内容:
 {context['full_diff']}
 """
+
+    def _post_review_comment(self, mr: Any, file_path: str, review_comment: str) -> None:
+        """发布审查评论"""
+        comment = (f"## AI 代码审查意见 - `{file_path}`\n\n"
+                   f"{review_comment}\n\n"
+                   f"---\n"
+                   f"_自动审查时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}_")
+        mr.notes.create({"body": comment})

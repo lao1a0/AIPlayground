@@ -17,9 +17,9 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 
 # 配置
 GITLAB_URL = os.getenv("GITLAB_URL")
-GITLAB_TOKEN = os.getenv("GITLAB_TOKEN")
+GITLAB_TOKEN = os.getenv("GITLAB_API_TOKEN")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
-MODEL_TYPE = os.getenv("MODEL_TYPE", "kimi")  # 默认使用 kimi
+MODEL_TYPE = os.getenv("REVIEW_MODEL")  # 默认使用 kimi
 
 
 def init_llm(model_type: str = MODEL_TYPE) -> BaseLLM:
